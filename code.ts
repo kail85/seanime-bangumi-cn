@@ -131,8 +131,4 @@ export function init() {
   $app.onGetAnime((e) => { try { $shared.use("seanime-bangumi-cn").decorate(e.anime); } catch (_) {} finally { e.next(); } });
   $app.onGetAnimeDetails((e) => { try { $shared.use("seanime-bangumi-cn").decorate(e.anime); } catch (_) {} finally { e.next(); } });
   $app.onGetAnimeCollection((e) => { try { $shared.use("seanime-bangumi-cn").decorateCollection(e.animeCollection); } catch (_) {} finally { e.next(); } });
-  $app.onGetCachedAnimeCollection((e) => { try { $shared.use("seanime-bangumi-cn").decorateCollection(e.animeCollection); } catch (_) {} finally { e.next(); } });
-  $app.onGetRawAnimeCollection((e) => { try { $shared.use("seanime-bangumi-cn").decorateCollection(e.animeCollection); } catch (_) {} finally { e.next(); } });
-  $app.onGetCachedRawAnimeCollection((e) => { try { $shared.use("seanime-bangumi-cn").decorateCollection(e.animeCollection); } catch (_) {} finally { e.next(); } });
-  $app.onAnimeMetadata((e) => { try { const s = $shared.use("seanime-bangumi-cn"); const c = s.read(Number(e.mediaId || 0)); if (e.animeMetadata && c && c.status === "confirmed") { e.animeMetadata.titles = e.animeMetadata.titles || {}; if (s.nonEmpty(c.title)) e.animeMetadata.titles.zh = c.title; } } catch (_) {} finally { e.next(); } });
 }
