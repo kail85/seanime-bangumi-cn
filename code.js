@@ -1,4 +1,3 @@
-ln: failed to create symbolic link '/usr/local/lib/docker/cli-plugins/docker-compose': Permission denied
 // Plain JavaScript-compatible TypeScript is intentional: Seanime can load the
 // generated payload directly and the source remains easy to audit.
 function bangumiSharedFactory() {
@@ -137,4 +136,3 @@ function init() {
   $app.onGetCachedRawAnimeCollection((e) => { try { $shared.use("seanime-bangumi-cn").decorateCollection(e.animeCollection); } catch (_) {} finally { e.next(); } });
   $app.onAnimeMetadata((e) => { try { const s = $shared.use("seanime-bangumi-cn"); const c = s.read(Number(e.mediaId || 0)); if (e.animeMetadata && c && c.status === "confirmed") { e.animeMetadata.titles = e.animeMetadata.titles || {}; if (s.nonEmpty(c.title)) e.animeMetadata.titles.zh = c.title; } } catch (_) {} finally { e.next(); } });
 }
-
