@@ -17,7 +17,7 @@ function clean(value) {
 }
 function nonEmpty(value) { return typeof value === "string" && value.trim() !== ""; }
 function log(message) { try { console.log("[bangumi-cn] " + message); } catch (_) {} }
-function key(id) { return "seanime-bangumi-cn:v11:" + String(id); }
+function key(id) { return "seanime-bangumi-cn:v12:" + String(id); }
 function read(id) { try { return $storage.get(key(id)); } catch (_) { return undefined; } }
 function write(id, value) { try { $storage.set(key(id), value); } catch (e) { log("cache write failed: " + String(e)); } }
 
@@ -79,7 +79,7 @@ function lookup(media) {
   if (inflight[id]) return inflight[id];
   inflight[id] = true;
     try {
-      let selected = null;
+      let subjects = [];
       for (let ti = 0; ti < Math.min(5, titles.length); ti++) {
         const title = titles[ti];
         const result = fetchJson(BGM_ROOT + "/search/subject/" + encodeURIComponent(title) + "?limit=10&type=2");
@@ -87,17 +87,17 @@ function lookup(media) {
         for (let si = 0; si < Math.min(5, list.length); si++) {
           const s = list[si];
           if (s && s.id && Number(s.type) === 2) {
-            selected = s;
-            break;
+            subjects.push(s);
           }
         }
-        if (selected) break;
       }
-      if (!selected) {
+      const ranked = choose(media, subjects);
+      if (!ranked) {
         write(id, { status: "negative", expiresAt: now() + NEGATIVE_TTL, reason: "no confident anime candidate" });
         log("no confident match for AniList " + id);
         return;
       }
+      const selected = ranked.subject;
       const detail = fetchJson(BGM_ROOT + "/v0/subjects/" + selected.id);
       if (!detail || Number(detail.type) !== 2) throw new Error("invalid subject schema");
       const exact = titles.some((t) => clean(t) === clean(detail.name) || clean(t) === clean(detail.name_cn) || aliasesOf(detail).map(clean).indexOf(clean(t)) >= 0);
