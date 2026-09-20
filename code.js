@@ -1,11 +1,140 @@
-// Built payload: intentionally identical to code.ts because the source uses
-// only JavaScript syntax supported by Seanime's plugin runtime.
+ln: failed to create symbolic link '/usr/local/lib/docker/cli-plugins/docker-compose': Permission denied
+// Plain JavaScript-compatible TypeScript is intentional: Seanime can load the
+// generated payload directly and the source remains easy to audit.
+function bangumiSharedFactory() {
 const BGM_ROOT = "https://api.bgm.tv";
 const UA = "seanime-bangumi-cn/1.0 (+https://github.com/kail85/seanime-bangumi-cn)";
 const META_TTL = 7 * 24 * 60 * 60 * 1000;
 const NEGATIVE_TTL = 24 * 60 * 60 * 1000;
+const TIMEOUT_MS = 5000;
 const MIN_CONFIDENCE = 0.82;
 const inflight = {};
-function now(){return Date.now();} function clean(v){return String(v||"").normalize("NFKC").toLocaleLowerCase().replace(/[\u2010-\u2015\-‐‑‒–—―_:：·•'’“”"「」『』【】〔〕()[\]{}]/g," ").replace(/[^\p{L}\p{N}]+/gu," ").trim().replace(/\s+/g," ");} function nonEmpty(v){return typeof v==="string"&&v.trim()!=="";} function log(m){try{console.log("[bangumi-cn] "+m);}catch(_){}} function key(id){return "seanime-bangumi-cn:v1:"+String(id);} function read(id){try{return $storage.get(key(id));}catch(_){return undefined;}} function write(id,v){try{$storage.set(key(id),v);}catch(e){log("cache write failed: "+String(e));}}
-function titlesOf(m){const t=m&&m.title||{};return [t.english,t.romaji,t.native,t.userPreferred].concat(m&&m.synonyms||[]).filter(nonEmpty);} function yearOf(m){return m&&m.startDate&&Number(m.startDate.year||0)||Number(m&&m.seasonYear||0);} function aliasesOf(s){const o=[];(s&&s.infobox||[]).forEach(r=>{if(!r||!/别名|alias/i.test(String(r.key||"")))return;const vs=Array.isArray(r.value)?r.value:[r.value];vs.forEach(v=>o.push(typeof v==="string"?v:v&&(v.v||v.value)));});return o.filter(nonEmpty);} function subjectYear(s){return Number(String(s&&(s.date||s.air_date)||"").slice(0,4))||0;} function subjectEpisodes(s){return Number(s&&(s.eps||s.episodes)||0);} function score(m,s){if(!s||Number(s.type)!==2)return 0;const w=titlesOf(m).map(clean).filter(Boolean),c=[s.name,s.name_cn].concat(aliasesOf(s)).map(clean).filter(Boolean);if(!w.some(x=>c.indexOf(x)>=0))return 0;let v=.84;const y=yearOf(m),sy=subjectYear(s);if(y&&sy)v+=y===sy?.10:-.16;const e=Number(m&&m.episodes||0),se=subjectEpisodes(s);if(e&&se)v+=e===se?.06:(Math.abs(e-se)<=2?.01:-.08);return Math.max(0,Math.min(1,v));} function choose(m,ss){const r=(ss||[]).filter(s=>Number(s&&s.type)===2).map(s=>({subject:s,confidence:score(m,s)})).filter(x=>x.confidence>0).sort((a,b)=>b.confidence-a.confidence);if(!r.length||r[0].confidence<MIN_CONFIDENCE||(r[1]&&r[0].confidence-r[1].confidence<.06))return null;return r[0];}
-async function fetchJson(u){const r=await fetch(u,{headers:{"User-Agent":UA,Accept:"application/json"}});if(!r||!r.ok)throw new Error("HTTP "+(r&&r.status||"unknown"));return await r.json();} async function lookup(m){const id=Number(m&&m.id||0);if(!id)return;const old=read(id);if(old&&old.status==="confirmed"&&old.metadataExpiresAt>now()||old&&old.status==="negative"&&old.expiresAt>now())return;if(inflight[id])return inflight[id];inflight[id]=(async()=>{try{const seen={};let sel=null;for(const t of titlesOf(m).slice(0,5)){const q=await fetchJson(BGM_ROOT+"/search/subject/"+encodeURIComponent(t)+"?limit=10&type=2");for(const s of (q&&q.list||[]).slice(0,5)){if(s&&s.id){try{seen[s.id]=await fetchJson(BGM_ROOT+"/v0/subjects/"+s.id);}catch(_){seen[s.id]=s;}}}sel=choose(m,Object.keys(seen).map(k=>seen[k]));if(sel&&sel.confidence>=.94)break;}if(!sel){write(id,{status:"negative",expiresAt:now()+NEGATIVE_TTL,reason:"no confident anime candidate"});log("no confident match for AniList "+id);return;}const d=await fetchJson(BGM_ROOT+"/v0/subjects/"+sel.subject.id);if(!d||Number(d.type)!==2)throw new Error("invalid subject schema");const e={status:"confirmed",subjectId:Number(d.id),confidence:sel.confidence,title:nonEmpty(d.name_cn)?d.name_cn.trim():"",summary:nonEmpty(d.summary)?d.summary.trim():"",metadataExpiresAt:now()+META_TTL,confirmedAt:old&&old.confirmedAt||now()};write(id,e);log("matched AniList "+id+" -> Bangumi "+e.subjectId);}catch(e){log("lookup failed for AniList "+id+": "+String(e));}finally{delete inflight[id];}})();return inflight[id];} function decorate(m){try{if(!m||!m.id)return;const c=read(Number(m.id));if(c&&c.status==="confirmed"&&c.metadataExpiresAt>now()){m.title=m.title||{};if(nonEmpty(c.title))m.title.userPreferred=c.title;if(nonEmpty(c.summary))m.description=c.summary;}else lookup(m).catch(()=>{});}catch(e){log("decorate failed: "+String(e));}} function decorateCollection(c){const ls=c&&c.MediaListCollection&&c.MediaListCollection.lists||[];ls.forEach(l=>(l.entries||[]).forEach(e=>decorate(e&&e.media)));} function safeHook(reg,h){reg(e=>{try{h(e);}catch(x){log("hook failed: "+String(x));}finally{try{e.next();}catch(_){}}});} function init(){safeHook($app.onAnimeEntry,e=>decorate(e.entry&&e.entry.media));safeHook($app.onGetAnime,e=>decorate(e.anime));safeHook($app.onGetAnimeDetails,e=>decorate(e.anime));safeHook($app.onGetAnimeCollection,e=>decorateCollection(e.animeCollection));safeHook($app.onGetCachedAnimeCollection,e=>decorateCollection(e.animeCollection));safeHook($app.onGetRawAnimeCollection,e=>decorateCollection(e.animeCollection));safeHook($app.onGetCachedRawAnimeCollection,e=>decorateCollection(e.animeCollection));safeHook($app.onAnimeMetadata,e=>{const c=read(Number(e.mediaId||0));if(e.animeMetadata&&c&&c.status==="confirmed"){e.animeMetadata.titles=e.animeMetadata.titles||{};if(nonEmpty(c.title))e.animeMetadata.titles.zh=c.title;}});}
+
+function now() { return Date.now(); }
+function clean(value) {
+  return String(value || "").normalize("NFKC").toLocaleLowerCase()
+    .replace(/[\u2010-\u2015\-‐‑‒–—―_:：·•'’“”"「」『』【】〔〕()[\]{}]/g, " ")
+    .replace(/[^\p{L}\p{N}]+/gu, " ").trim().replace(/\s+/g, " ");
+}
+function nonEmpty(value) { return typeof value === "string" && value.trim() !== ""; }
+function log(message) { try { console.log("[bangumi-cn] " + message); } catch (_) {} }
+function key(id) { return "seanime-bangumi-cn:v1:" + String(id); }
+function read(id) { try { return $storage.get(key(id)); } catch (_) { return undefined; } }
+function write(id, value) { try { $storage.set(key(id), value); } catch (e) { log("cache write failed: " + String(e)); } }
+
+function titlesOf(media) {
+  const t = media && media.title || {};
+  return [t.english, t.romaji, t.native, t.userPreferred].concat(media && media.synonyms || []).filter(nonEmpty);
+}
+function yearOf(media) { return media && media.startDate && Number(media.startDate.year || 0) || Number(media && media.seasonYear || 0); }
+function aliasesOf(subject) {
+  const out = [];
+  (subject && subject.infobox || []).forEach((row) => {
+    if (!row || !/别名|alias/i.test(String(row.key || ""))) return;
+    const values = Array.isArray(row.value) ? row.value : [row.value];
+    values.forEach((v) => out.push(typeof v === "string" ? v : v && (v.v || v.value)));
+  });
+  return out.filter(nonEmpty);
+}
+function subjectYear(subject) { return Number(String(subject && (subject.date || subject.air_date) || "").slice(0, 4)) || 0; }
+function subjectEpisodes(subject) { return Number(subject && (subject.eps || subject.episodes) || 0); }
+function score(media, subject) {
+  if (!subject || Number(subject.type) !== 2) return 0;
+  const wanted = titlesOf(media).map(clean).filter(Boolean);
+  const candidate = [subject.name, subject.name_cn].concat(aliasesOf(subject)).map(clean).filter(Boolean);
+  const exact = wanted.some((x) => candidate.indexOf(x) >= 0);
+  if (!exact) return 0;
+  let value = 0.84;
+  const y = yearOf(media), sy = subjectYear(subject);
+  if (y && sy) value += y === sy ? 0.10 : -0.16;
+  const e = Number(media && media.episodes || 0), se = subjectEpisodes(subject);
+  if (e && se) value += e === se ? 0.06 : (Math.abs(e - se) <= 2 ? 0.01 : -0.08);
+  return Math.max(0, Math.min(1, value));
+}
+function choose(media, subjects) {
+  const ranked = (subjects || []).filter((s) => Number(s && s.type) === 2)
+    .map((s) => ({ subject: s, confidence: score(media, s) }))
+    .filter((x) => x.confidence > 0).sort((a, b) => b.confidence - a.confidence);
+  if (!ranked.length || ranked[0].confidence < MIN_CONFIDENCE || (ranked[1] && ranked[0].confidence - ranked[1].confidence < 0.06)) {
+    return null;
+  }
+  return ranked[0];
+}
+async function fetchJson(url) {
+  const response = await fetch(url, { headers: { "User-Agent": UA, Accept: "application/json" } });
+  if (!response || !response.ok) throw new Error("HTTP " + (response && response.status || "unknown"));
+  return await response.json();
+}
+async function lookup(media) {
+  const id = Number(media && media.id || 0);
+  if (!id) return;
+  const old = read(id);
+  if (old && old.status === "confirmed" && old.metadataExpiresAt > now()) return;
+  if (old && old.status === "negative" && old.expiresAt > now()) return;
+  if (inflight[id]) return inflight[id];
+  inflight[id] = (async () => {
+    try {
+      const seen = {};
+      let selected = null;
+      for (const title of titlesOf(media).slice(0, 5)) {
+        const result = await fetchJson(BGM_ROOT + "/search/subject/" + encodeURIComponent(title) + "?limit=10&type=2");
+        for (const s of (result && result.list || []).slice(0, 5)) {
+          if (s && s.id) {
+            try { seen[s.id] = await fetchJson(BGM_ROOT + "/v0/subjects/" + s.id); }
+            catch (_) { seen[s.id] = s; }
+          }
+        }
+        selected = choose(media, Object.keys(seen).map((k) => seen[k]));
+        if (selected && selected.confidence >= 0.94) break;
+      }
+      if (!selected) {
+        write(id, { status: "negative", expiresAt: now() + NEGATIVE_TTL, reason: "no confident anime candidate" });
+        log("no confident match for AniList " + id);
+        return;
+      }
+      const detail = await fetchJson(BGM_ROOT + "/v0/subjects/" + selected.subject.id);
+      if (!detail || Number(detail.type) !== 2) throw new Error("invalid subject schema");
+      const entry = { status: "confirmed", subjectId: Number(detail.id), confidence: selected.confidence,
+        title: nonEmpty(detail.name_cn) ? detail.name_cn.trim() : "", summary: nonEmpty(detail.summary) ? detail.summary.trim() : "",
+        metadataExpiresAt: now() + META_TTL, confirmedAt: old && old.confirmedAt || now() };
+      write(id, entry);
+      log("matched AniList " + id + " -> Bangumi " + entry.subjectId);
+    } catch (e) {
+      log("lookup failed for AniList " + id + ": " + String(e));
+    } finally { delete inflight[id]; }
+  })();
+  return inflight[id];
+}
+function decorate(media) {
+  try {
+    if (!media || !media.id) return;
+    const cached = read(Number(media.id));
+    if (cached && cached.status === "confirmed" && cached.metadataExpiresAt > now()) {
+      media.title = media.title || {};
+      if (nonEmpty(cached.title)) media.title.userPreferred = cached.title;
+      if (nonEmpty(cached.summary)) media.description = cached.summary;
+    } else { lookup(media).catch(() => {}); }
+  } catch (e) { log("decorate failed: " + String(e)); }
+}
+function decorateCollection(collection) {
+  const lists = collection && collection.MediaListCollection && collection.MediaListCollection.lists || [];
+  lists.forEach((list) => (list.entries || []).forEach((entry) => decorate(entry && entry.media)));
+}
+function safeHook(register, handler) {
+  register((event) => { try { handler(event); } catch (e) { log("hook failed: " + String(e)); } finally { try { event.next(); } catch (_) {} } });
+}
+return { decorate, decorateCollection, read, nonEmpty };
+}
+
+function init() {
+  $shared.define("seanime-bangumi-cn", bangumiSharedFactory);
+  $app.onAnimeEntry((e) => { try { $shared.use("seanime-bangumi-cn").decorate(e.entry && e.entry.media); } catch (_) {} finally { e.next(); } });
+  $app.onGetAnime((e) => { try { $shared.use("seanime-bangumi-cn").decorate(e.anime); } catch (_) {} finally { e.next(); } });
+  $app.onGetAnimeDetails((e) => { try { $shared.use("seanime-bangumi-cn").decorate(e.anime); } catch (_) {} finally { e.next(); } });
+  $app.onGetAnimeCollection((e) => { try { $shared.use("seanime-bangumi-cn").decorateCollection(e.animeCollection); } catch (_) {} finally { e.next(); } });
+  $app.onGetCachedAnimeCollection((e) => { try { $shared.use("seanime-bangumi-cn").decorateCollection(e.animeCollection); } catch (_) {} finally { e.next(); } });
+  $app.onGetRawAnimeCollection((e) => { try { $shared.use("seanime-bangumi-cn").decorateCollection(e.animeCollection); } catch (_) {} finally { e.next(); } });
+  $app.onGetCachedRawAnimeCollection((e) => { try { $shared.use("seanime-bangumi-cn").decorateCollection(e.animeCollection); } catch (_) {} finally { e.next(); } });
+  $app.onAnimeMetadata((e) => { try { const s = $shared.use("seanime-bangumi-cn"); const c = s.read(Number(e.mediaId || 0)); if (e.animeMetadata && c && c.status === "confirmed") { e.animeMetadata.titles = e.animeMetadata.titles || {}; if (s.nonEmpty(c.title)) e.animeMetadata.titles.zh = c.title; } } catch (_) {} finally { e.next(); } });
+}
+

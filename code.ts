@@ -1,5 +1,6 @@
 // Plain JavaScript-compatible TypeScript is intentional: Seanime can load the
 // generated payload directly and the source remains easy to audit.
+function bangumiSharedFactory() {
 const BGM_ROOT = "https://api.bgm.tv";
 const UA = "seanime-bangumi-cn/1.0 (+https://github.com/kail85/seanime-bangumi-cn)";
 const META_TTL = 7 * 24 * 60 * 60 * 1000;
@@ -121,13 +122,17 @@ function decorateCollection(collection) {
 function safeHook(register, handler) {
   register((event) => { try { handler(event); } catch (e) { log("hook failed: " + String(e)); } finally { try { event.next(); } catch (_) {} } });
 }
+return { decorate, decorateCollection, read, nonEmpty };
+}
+
 function init() {
-  safeHook($app.onAnimeEntry, (e) => decorate(e.entry && e.entry.media));
-  safeHook($app.onGetAnime, (e) => decorate(e.anime));
-  safeHook($app.onGetAnimeDetails, (e) => decorate(e.anime));
-  safeHook($app.onGetAnimeCollection, (e) => decorateCollection(e.animeCollection));
-  safeHook($app.onGetCachedAnimeCollection, (e) => decorateCollection(e.animeCollection));
-  safeHook($app.onGetRawAnimeCollection, (e) => decorateCollection(e.animeCollection));
-  safeHook($app.onGetCachedRawAnimeCollection, (e) => decorateCollection(e.animeCollection));
-  safeHook($app.onAnimeMetadata, (e) => { const id = Number(e.mediaId || 0); const cached = read(id); if (e.animeMetadata && cached && cached.status === "confirmed") { e.animeMetadata.titles = e.animeMetadata.titles || {}; if (nonEmpty(cached.title)) e.animeMetadata.titles.zh = cached.title; } });
+  $shared.define("seanime-bangumi-cn", bangumiSharedFactory);
+  $app.onAnimeEntry((e) => { try { $shared.use("seanime-bangumi-cn").decorate(e.entry && e.entry.media); } catch (_) {} finally { e.next(); } });
+  $app.onGetAnime((e) => { try { $shared.use("seanime-bangumi-cn").decorate(e.anime); } catch (_) {} finally { e.next(); } });
+  $app.onGetAnimeDetails((e) => { try { $shared.use("seanime-bangumi-cn").decorate(e.anime); } catch (_) {} finally { e.next(); } });
+  $app.onGetAnimeCollection((e) => { try { $shared.use("seanime-bangumi-cn").decorateCollection(e.animeCollection); } catch (_) {} finally { e.next(); } });
+  $app.onGetCachedAnimeCollection((e) => { try { $shared.use("seanime-bangumi-cn").decorateCollection(e.animeCollection); } catch (_) {} finally { e.next(); } });
+  $app.onGetRawAnimeCollection((e) => { try { $shared.use("seanime-bangumi-cn").decorateCollection(e.animeCollection); } catch (_) {} finally { e.next(); } });
+  $app.onGetCachedRawAnimeCollection((e) => { try { $shared.use("seanime-bangumi-cn").decorateCollection(e.animeCollection); } catch (_) {} finally { e.next(); } });
+  $app.onAnimeMetadata((e) => { try { const s = $shared.use("seanime-bangumi-cn"); const c = s.read(Number(e.mediaId || 0)); if (e.animeMetadata && c && c.status === "confirmed") { e.animeMetadata.titles = e.animeMetadata.titles || {}; if (s.nonEmpty(c.title)) e.animeMetadata.titles.zh = c.title; } } catch (_) {} finally { e.next(); } });
 }
