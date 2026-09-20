@@ -1,7 +1,7 @@
 {
   "id": "seanime-bangumi-cn",
   "name": "Bangumi Simplified Chinese Metadata",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "manifestURI": "https://raw.githubusercontent.com/kail85/seanime-bangumi-cn/main/manifest.json",
   "language": "javascript",
   "type": "plugin",
@@ -22,6 +22,5 @@
       }
     }
   },
-  "payloadURI": "https://raw.githubusercontent.com/kail85/seanime-bangumi-cn/main/code.js"
+  "payloadURI": "https://raw.githubusercontent.com/kail85/seanime-bangumi-cn/main/code.js?v=1.0.1"
 }
-
