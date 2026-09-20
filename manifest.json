@@ -1,7 +1,7 @@
 {
   "id": "seanime-bangumi-cn",
   "name": "Bangumi Simplified Chinese Metadata",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "manifestURI": "https://raw.githubusercontent.com/kail85/seanime-bangumi-cn/main/manifest.json",
   "language": "typescript",
   "type": "plugin",
@@ -13,14 +13,18 @@
   "plugin": {
     "version": "1",
     "permissions": {
-      "scopes": ["storage"],
+      "scopes": [
+        "storage"
+      ],
       "allow": {
         "networkAccess": {
-          "allowedDomains": ["api.bgm.tv"],
+          "allowedDomains": [
+            "api.bgm.tv"
+          ],
           "reasoning": "Fetch public Bangumi anime metadata for display-only enrichment."
         }
       }
     }
   },
-  "payloadURI": "https://raw.githubusercontent.com/kail85/seanime-bangumi-cn/main/code.js?v=1.0.2"
+  "payloadURI": "https://raw.githubusercontent.com/kail85/seanime-bangumi-cn/main/code.js?v=1.0.3"
 }

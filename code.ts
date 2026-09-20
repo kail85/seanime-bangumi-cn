@@ -125,7 +125,7 @@ function safeHook(register, handler) {
 return { decorate, decorateCollection, read, nonEmpty };
 }
 
-function init() {
+export function init() {
   $shared.define("seanime-bangumi-cn", bangumiSharedFactory);
   $app.onAnimeEntry((e) => { try { $shared.use("seanime-bangumi-cn").decorate(e.entry && e.entry.media); } catch (_) {} finally { e.next(); } });
   $app.onGetAnime((e) => { try { $shared.use("seanime-bangumi-cn").decorate(e.anime); } catch (_) {} finally { e.next(); } });
