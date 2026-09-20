@@ -26,3 +26,10 @@ class FallbackTests(unittest.TestCase):
     def test_malformed_response_safe(self):
         self.assertEqual(apply({"title": "Original"}, None)["title"], "Original")
 
+    def test_timeout_falls_back_without_exception(self):
+        original = {"title": "Macross", "description": "AniList summary"}
+        self.assertEqual(apply(original, None), original)
+
+    def test_empty_metadata_never_overwrites_both_fields(self):
+        original = {"title": "Original", "description": "Original summary"}
+        self.assertEqual(apply(original, {"title": "", "summary": ""}), original)

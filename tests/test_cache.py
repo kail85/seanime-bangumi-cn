@@ -24,3 +24,7 @@ class CacheTests(unittest.TestCase):
         self.cache.finish_inflight("1")
         self.assertTrue(self.cache.start_inflight("1"))
 
+    def test_expired_negative_entry_is_removed(self):
+        self.cache.put("1", "negative", {"reason": "timeout"}, 1)
+        self.t[0] += 1
+        self.assertIsNone(self.cache.get("1"))
