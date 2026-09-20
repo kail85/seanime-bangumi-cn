@@ -1,9 +1,9 @@
 {
   "id": "seanime-bangumi-cn",
   "name": "Bangumi Simplified Chinese Metadata",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "manifestURI": "https://raw.githubusercontent.com/kail85/seanime-bangumi-cn/main/manifest.json",
-  "language": "javascript",
+  "language": "typescript",
   "type": "plugin",
   "description": "Decorates existing AniList anime with confident Bangumi Chinese titles and summaries.",
   "author": "kail85",
@@ -22,5 +22,5 @@
       }
     }
   },
-  "payloadURI": "https://raw.githubusercontent.com/kail85/seanime-bangumi-cn/main/code.js?v=1.0.1"
+  "payloadURI": "https://raw.githubusercontent.com/kail85/seanime-bangumi-cn/main/code.js?v=1.0.2"
 }
