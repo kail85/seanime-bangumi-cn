@@ -17,7 +17,7 @@ function clean(value) {
 }
 function nonEmpty(value) { return typeof value === "string" && value.trim() !== ""; }
 function log(message) { try { console.log("[bangumi-cn] " + message); } catch (_) {} }
-function key(id) { return "seanime-bangumi-cn:v1:" + String(id); }
+function key(id) { return "seanime-bangumi-cn:v2:" + String(id); }
 function read(id) { try { return $storage.get(key(id)); } catch (_) { return undefined; } }
 function write(id, value) { try { $storage.set(key(id), value); } catch (e) { log("cache write failed: " + String(e)); } }
 
