@@ -162,7 +162,7 @@ function init() {
         if (s && Number(s.type) === 2) {
           const dr = $await(fetch("https://api.bgm.tv/v0/subjects/" + s.id, {headers:{"User-Agent":"seanime-bangumi-cn/1.0 (+https://github.com/kail85/seanime-bangumi-cn)"}}));
           const d = $await(dr.json()), y = Number(String(d.date || "").slice(0,4));
-          if (d && Number(d.type) === 2 && (!m.seasonYear || !y || m.seasonYear === y)) {
+          if (d && Number(d.type) === 2 && (!m.seasonYear || !y || Number(m.seasonYear) === y)) {
             const x = {status:"confirmed",subjectId:Number(d.id),title:typeof d.name_cn === "string" ? d.name_cn : "",summary:typeof d.summary === "string" ? d.summary : "",metadataExpiresAt:Date.now()+604800000};
             $storage.set(k, x); apply(x);
           }
